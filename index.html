@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer - Start & Pause/Resume</title>
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f4f8;
+}
+#display {
+    font-size: 70px;
+    margin: 20px;
+    color: #333;
+}
+#status {
+    font-size: 26px;
+    margin: 10px;
+}
+button {
+    font-size: 22px;
+    margin: 12px;
+    padding: 16px 35px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    width: 60%;
+    max-width: 300px;
+}
+#startBtn { background-color: #4CAF50; color: white; }
+#pauseBtn { background-color: #f44336; color: white; }
+
+/* 进度条 */
+#progressContainer {
+    width: 80%;
+    max-width: 400px;
+    height: 20px;
+    background-color: #ddd;
+    border-radius: 10px;
+    margin: 15px 0;
+    overflow: hidden;
+}
+#progressBar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s linear;
+}
+
+@media (min-width: 768px) {
+    #display { font-size: 60px; }
+    #status { font-size: 24px; }
+    button { font-size: 20px; padding: 12px 25px; }
+}
+</style>
+</head>
+<body>
+
+<div id="display">0:00:00</div>
+<div id="status">Working</div>
+
+<div id="progressContainer">
+  <div id="progressBar"></div>
+</div>
+
+<button id="startBtn">Start</button>
+<button id="pauseBtn">Pause/Resume</button>
+
+<audio id="alertSound">
+  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+</audio>
+
+<script>
+let timer = null;
+let seconds = 0;
+let isWorking = true;
+let isPaused = true;
+
+const display = document.getElementById('display');
+const status = document.getElementById('status');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const alertSound = document.getElementById('alertSound');
+const progressBar = document.getElementById('progressBar');
+
+function updateDisplay() {
+    let hrs = Math.floor(seconds / 3600);
+    let min = Math.floor((seconds % 3600) / 60);
+    let sec = seconds % 60;
+    display.textContent = `${hrs}:${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    status.textContent = isWorking ? "Working" : "Exercise";
+
+    if(isWorking){
+        status.style.color = "#333";
+        progressBar.style.backgroundColor = "#4CAF50"; // 绿色
+        progressBar.style.width = ((seconds % 3600)/3600*100) + "%";
+        document.body.style.backgroundColor = "#f0f4f8";
+    } else {
+        status.style.color = "#d32f2f";
+        document.body.style.backgroundColor = "#ffe5e5";
+        let exerciseSeconds = seconds % 300;
+        progressBar.style.width = (exerciseSeconds/300*100) + "%";
+        // 剩1分钟闪烁
+        progressBar.style.backgroundColor = (300 - exerciseSeconds <= 60 && Math.floor(Date.now()/500)%2===0) ? "#ff0000" : "#d32f2f";
+    }
+}
+
+// Start 按钮：重头开始
+startBtn.addEventListener('click', () => {
+    seconds = 0;
+    isWorking = true;
+    isPaused = false;
+    if(timer) clearInterval(timer);
+    timer = setInterval(runTimer, 1000);
+    updateDisplay();
+});
+
+// Pause/Resume 按钮
+pauseBtn.addEventListener('click', () => {
+    if(isPaused){
+        // 继续计时
+        timer = setInterval(runTimer, 1000);
+        isPaused = false;
+    } else {
+        // 暂停计时
+        clearInterval(timer);
+        timer = null;
+        isPaused = true;
+    }
+});
+
+// 核心计时函数
+function runTimer(){
+    seconds++;
+    updateDisplay();
+
+    if(isWorking && seconds % 3600 === 0){
+        isWorking = false;
+        alertSound.play();
+        if(navigator.vibrate) navigator.vibrate(500);
+        updateDisplay();
+        alert("Time to exercise for 5 minutes!");
+        setTimeout(() => {
+            alertSound.play();
+            if(navigator.vibrate) navigator.vibrate([200,100,200]);
+            alert("Back to work!");
+            isWorking = true;
+            updateDisplay();
+        }, 5*60*1000);
+    }
+}
+
+updateDisplay();
+</script>
+</body>
+</html>
